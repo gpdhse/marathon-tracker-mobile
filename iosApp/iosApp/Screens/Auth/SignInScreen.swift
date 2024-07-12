@@ -23,9 +23,7 @@ struct SignInScreen: View{
                 TextField("Email", text: $email)
                 SecureField("Password", text: $password)
                 Button("Sign in"){
-                    Task {
-                        await authViewModel.signIn(email:email, password:password)
-                    }
+                    authViewModel.signIn(email:email, password:password)
                 }
                 
                 Button{

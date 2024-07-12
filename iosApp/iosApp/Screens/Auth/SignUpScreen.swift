@@ -30,7 +30,7 @@ struct SignUpScreen: View {
                 TextField("Email", text: $email)
                     .autocorrectionDisabled()
                 
-                TextField("Email", text: $name)
+                TextField("Name", text: $name)
                     .keyboardType(.namePhonePad)
                 
                 TextField("Age", text: $age)
@@ -65,15 +65,20 @@ struct SignUpScreen: View {
                         }
                     }
                 
-                TextField("Email", text: $phone)
+                TextField("Phone", text: $phone)
                     .keyboardType(.phonePad)
+                    .onReceive(Just(phone)) { newValue in
+                        let filtered = newValue.filter { "+0123456789".contains($0) }
+                        if filtered != newValue {
+                            phone = filtered
+                        }
+                    
+                    }
                 
                 SecureField("Password", text: $password)
                     .autocorrectionDisabled()
                 Button("Sign up"){
-                    Task {
-                        await authViewModel.signUp(email:email, name:name, age:Int(age) ?? 0, sex: sex, height:Int(height) ?? 0, weight:Int(weight) ?? 0, phone:phone, password:password)
-                    }
+                    authViewModel.signUp(email:email, name:name, age:Int(age) ?? 0, sex: sex, height:Int(height) ?? 0, weight:Int(weight) ?? 0, phone:phone, password:password)
                 }
                 
                 Button{

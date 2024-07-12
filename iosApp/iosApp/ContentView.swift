@@ -9,15 +9,14 @@ struct ContentView: View {
             if !authViewModel.isAuthenticated {
                 AuthScreen(authViewModel: authViewModel)
             } else {
-                EmptyView()
+                MainScreen(authViewModel: authViewModel)
             }
         }.onAppear{
-            Task {
-                await authViewModel.authenticate()
-                if (!authViewModel.isAuthenticated){
-                    await authViewModel.refresh()
-                }
+            authViewModel.authenticate()
+            if (!authViewModel.isAuthenticated){
+                authViewModel.refresh()
             }
+            
         }
     }
 }

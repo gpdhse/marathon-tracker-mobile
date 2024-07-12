@@ -25,39 +25,73 @@ final class AuthViewModel : ObservableObject {
         self.repository = repository
     }
     
-    func signIn(email: String, password: String) async {
-        let token = try? await repository.signIn(email:email, password:password, deviceId:platform.deviceId)
-        accessToken = token?.accessToken ?? ""
-        if let refreshToken = token?.refreshToken{
-            KeychainHelper.shared.save(refreshToken.data(using: .utf8) ?? Data(), service: "refresh_token", account: "account")
-        }
-        await authenticate()
-    }
-    
-    func signUp(email: String, name: String, age:Int, sex: Sex, height: Int, weight: Int, phone: String, password: String) async {
-        let token = try? await repository.signUp(email: email, name: name, age: Int32(age), sex: sex.convert(), height: Int32(height), weight: Int32(weight), phone: phone, password: password, deviceId: platform.deviceId)
-        accessToken = token?.accessToken ?? ""
-        if let refreshToken = token?.refreshToken{
-            KeychainHelper.shared.save(refreshToken.data(using:.utf8) ?? Data(), service: "refresh_token", account: "account")
-        }
-        await authenticate()
-    }
-    
-    func authenticate() async {
-        user = try? await repository.authenticate(accessToken: accessToken)
-        if user != nil {
-            isAuthenticated = true
-        } else {
-            isAuthenticated = false
+    func signIn(email: String, password: String) {
+        Task{
+            if let token = try? await repository.signIn(email:email, password:password, deviceId:platform.deviceId){
+                
+                await MainActor.run {
+                    self.accessToken = token.accessToken
+                    
+                    KeychainHelper.shared.save(token.refreshToken.data(using: .utf8) ?? Data(), service: "refresh_token", account: "account")
+                }
+                
+                authenticate()
+            }
         }
     }
     
-    func refresh() async {
-        if let refreshToken = String(data:KeychainHelper.shared.read(service: "refresh_token", account: "account") ?? Data(), encoding: .utf8) {
-            let token = try? await repository.refresh(refreshToken: refreshToken)
-            user = try? await repository.authenticate(accessToken: token?.accessToken ?? "")
+    func signUp(email: String, name: String, age:Int, sex: Sex, height: Int, weight: Int, phone: String, password: String) {
+        Task{
+            if let token = try? await repository.signUp(email: email, name: name, age: Int32(age), sex: sex.convert(), height: Int32(height), weight: Int32(weight), phone: phone, password: password, deviceId: platform.deviceId) {
+                
+                await MainActor.run {
+                    self.accessToken = token.accessToken
+                    
+                    KeychainHelper.shared.save(token.refreshToken.data(using:.utf8) ?? Data(), service: "refresh_token", account: "account")
+                }
+                
+                print(accessToken)
+                authenticate()
+            }
         }
-        await authenticate()
+    }
+    
+    func authenticate() {
+        let accessToken = self.accessToken
+        print(accessToken)
+        print(isAuthenticated)
+        Task{
+            let user = try? await repository.authenticate(accessToken: accessToken)
+            
+            print(user ?? "")
+            
+            await MainActor.run {
+                self.user = user
+            }
+            
+            await MainActor.run{
+                if self.user != nil {
+                    isAuthenticated = true
+                } else {
+                    isAuthenticated = false
+                }
+            }
+        }
+    }
+    
+    func refresh() {
+        Task{
+            if let refreshToken = String(data:KeychainHelper.shared.read(service: "refresh_token", account: "account") ?? Data(), encoding: .utf8) {
+                if let token = try? await repository.refresh(refreshToken: refreshToken){
+                    await MainActor.run{
+                        self.accessToken = token.accessToken
+                        
+                        KeychainHelper.shared.save(token.refreshToken.data(using: .utf8) ?? Data(), service: "service", account: "account")
+                    }
+                    authenticate()
+                }
+            }
+        }
     }
     
 }

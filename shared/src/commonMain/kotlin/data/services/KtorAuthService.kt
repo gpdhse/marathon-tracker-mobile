@@ -32,6 +32,7 @@ class KtorAuthService(private val client: HttpClient) : AuthService {
         withContext(Dispatchers.IO) {
             runCatching {
                 client.post(Routes.SIGN_UP) {
+                    println(url)
                     contentType(ContentType.Application.Json)
                     setBody(signUpRequest)
                 }.body<AuthorizeResponse>()
@@ -45,7 +46,9 @@ class KtorAuthService(private val client: HttpClient) : AuthService {
             client.get(Routes.AUTHENTICATE){
                 bearerAuth(accessToken)
             }.body<AuthenticateResponse>()
-        }.getOrNull()
+        }.getOrNull().also{
+            println(it)
+        }
     }
 
     override suspend fun refresh(refreshToken: String): AuthorizeResponse? = withContext(Dispatchers.IO){
